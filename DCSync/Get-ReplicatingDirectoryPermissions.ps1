@@ -1,6 +1,9 @@
-Import-Module ActiveDirectory
+# Use native .NET/ADSI calls instead of ActiveDirectory module
+[void][System.Reflection.Assembly]::LoadWithPartialName("System.DirectoryServices.Protocols")
+[void][System.Reflection.Assembly]::LoadWithPartialName("System.DirectoryServices")
 
-$rootdse = Get-ADRootDSE
+# Get RootDSE using ADSI instead of Get-ADRootDSE  
+$rootDSE = [ADSI]"LDAP://RootDSE"
 
 # 'Replicating Directory Changes' and 'Replicating Directory Changes All' have the same rightsGUID
 # so we check only the first one
@@ -8,13 +11,35 @@ $replicationPermission = 'Replicating Directory Changes'
 $replicationAllPermission = 'Replicating Directory Changes All'
 $replicationFilteredSet = 'Replicating Directory Changes in Filtered Set'
 
-# look for rightsGUID
-$repl = (Get-ADObject -SearchBase ($rootdse.ConfigurationNamingContext) -LDAPFilter "(&(objectclass=controlAccessRight)(DisplayName=$replicationPermission))" -Properties rightsGUID).rightsGuid
-$replAll = (Get-ADObject -SearchBase ($rootdse.ConfigurationNamingContext) -LDAPFilter "(&(objectclass=controlAccessRight)(DisplayName=$replicationAllPermission))" -Properties rightsGUID).rightsGuid
-$replFiltered = (Get-ADObject -SearchBase ($rootdse.ConfigurationNamingContext) -LDAPFilter "(&(objectclass=controlAccessRight)(DisplayName=$replicationFilteredSet))" -Properties rightsGUID).rightsGuid
+# Setup LDAP connection for searching configuration naming context
+$LDAPConnection = New-Object System.DirectoryServices.Protocols.LdapConnection($rootDSE.dnsHostName)
+$configurationNC = $rootDSE.configurationNamingContext
 
-# Get the ACL on the domain object to find the objects with 'Replicating Directory Changes' permission
-$domainDN = (Get-ADDomain).DistinguishedName
+# Function to get rightsGUID for a given display name
+function Get-ControlAccessRightGuid {
+    param([string]$DisplayName, [string]$ConfigNC, $Connection)
+    
+    $request = New-Object System.DirectoryServices.Protocols.SearchRequest(
+        $ConfigNC,
+        "(&(objectclass=controlAccessRight)(displayName=$DisplayName))",
+        "Subtree"
+    )
+    [void]$request.Attributes.Add("rightsGUID")
+    
+    $response = $Connection.SendRequest($request)
+    if ($response.Entries.Count -gt 0) {
+        return [System.Guid]$response.Entries[0].Attributes["rightsGUID"][0]
+    }
+    return $null
+}
+
+# look for rightsGUID using native LDAP calls
+$repl = Get-ControlAccessRightGuid -DisplayName $replicationPermission -ConfigNC $configurationNC -Connection $LDAPConnection
+$replAll = Get-ControlAccessRightGuid -DisplayName $replicationAllPermission -ConfigNC $configurationNC -Connection $LDAPConnection
+$replFiltered = Get-ControlAccessRightGuid -DisplayName $replicationFilteredSet -ConfigNC $configurationNC -Connection $LDAPConnection
+
+# Get domain DN using native LDAP call instead of Get-ADDomain
+$domainDN = $rootDSE.defaultNamingContext
 $aclOnDomain = Get-ACL "AD:$domainDN"
 
 "Replicating Directory Changes:"
