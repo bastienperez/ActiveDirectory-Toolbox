@@ -211,7 +211,6 @@ function Get-ADPropertySetForAttribute {
         }
         else {
             Write-Host -ForegroundColor Yellow "IGNORED: $property not part of any Property Set"
-
         }
     }
     else {

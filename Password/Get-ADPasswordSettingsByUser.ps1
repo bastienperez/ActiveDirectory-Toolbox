@@ -67,6 +67,9 @@
                 $lockoutDuration = $defautPasswordPolicyObject.LockoutDuration
                 $lockoutObservationWindow = $defautPasswordPolicyObject.LockoutObservationWindow
                 $lockoutThreshold = $defautPasswordPolicyObject.LockoutThreshold
+                $passwordMinimumLength = $defautPasswordPolicyObject.MinPasswordLength
+                $passwordComplexityEnabled = $defautPasswordPolicyObject.ComplexityEnabled
+                $passwordHistoryCount = $defautPasswordPolicyObject.PasswordHistoryCount
                 break
             }
             default {
@@ -75,6 +78,9 @@
                 $lockoutDuration = $fineGrainedPassword.LockoutDuration
                 $lockoutObservationWindow = $fineGrainedPassword.LockoutObservationWindow
                 $lockoutThreshold = $fineGrainedPassword.LockoutThreshold
+                $passwordMinimumLength = $fineGrainedPassword.MinPasswordLength
+                $passwordComplexityEnabled = $fineGrainedPassword.ComplexityEnabled
+                $passwordHistoryCount = $fineGrainedPassword.PasswordHistoryCount
                 break
             }
         }
@@ -126,7 +132,10 @@
             Enabled                                                    = $user.Enabled
             DistinguishedName                                          = $user.DistinguishedName
             PasswordPolicy                                             = $policy
-            PasswordPolicyMaxPasswordAge                               = if ($passwordPolicyMaxPasswordAge -eq 0) { 'No Expiration' }else { $passwordPolicyMaxPasswordAge }
+            PasswordPolicyMaxPasswordAge                               = $passwordPolicyMaxPasswordAge
+            PasswordMinimumLength                                      = $passwordMinimumLength
+            PasswordHistoryCount                                       = $passwordHistoryCount
+            PasswordComplexityEnabled                                  = $passwordComplexityEnabled
             'PasswordLastSet (UTC Time)'                               = $pwdLastSet
             'PasswordExpirationDate (UTC Time)'                        = $expirationDate
             'Days left before password change (according to UTC Time)' = $daysLeft
