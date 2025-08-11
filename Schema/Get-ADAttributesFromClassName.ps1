@@ -17,13 +17,17 @@ function Get-ADAttributesFromClassName {
         [String]$ClassName
     )
 
+    $schemaNC = (Get-ADRootDSE).SchemaNamingContext
+    $schema = [System.DirectoryServices.ActiveDirectory.ActiveDirectorySchema]::GetCurrentSchema()
+
+        
     $loop = $True
     [System.Collections.Generic.List[PSObject]]$classArray = @()
     [System.Collections.Generic.List[PSObject]]$attributesArray = @()
     
     if ($ClassName) {
         while ($loop) {
-            $class = Get-ADObject -SearchBase (Get-ADRootDSE).SchemaNamingContext -Filter { ldapDisplayName -Like $ClassName } -Properties AuxiliaryClass, SystemAuxiliaryClass, mayContain, mustContain, systemMayContain, systemMustContain, subClassOf, ldapDisplayName
+            $class = Get-ADObject -SearchBase $schemaNC -Filter { ldapDisplayName -eq $ClassName } -Properties AuxiliaryClass, SystemAuxiliaryClass, mayContain, mustContain, systemMayContain, systemMustContain, subClassOf, ldapDisplayName
         
             if ($class.ldapDisplayName -eq $class.subClassOf) {
                 $loop = $False
@@ -35,58 +39,58 @@ function Get-ADAttributesFromClassName {
         }
     
         # Loop through all the classes and get all auxiliary class attributes and direct attributes
-        $classArray | ForEach-Object {
+        foreach ($class in $classArray) {
 
             # Get Auxiliary class attributes
-            $auxiliaryClass = $_.AuxiliaryClass | ForEach-Object { 
-                Get-ADObject -SearchBase (Get-ADRootDSE).SchemaNamingContext -Filter { ldapDisplayName -like $_ } -Properties mayContain, mustContain, systemMayContain, systemMustContain } | Select-Object @{Name = 'Attributes'; Expression = { $_.mayContain + $_.mustContain + $_.systemMaycontain + $_.systemMustContain } } | Select-Object -ExpandProperty Attributes
-        
+            $auxiliaryClass = $class.AuxiliaryClass | ForEach-Object { 
+                Get-ADObject -SearchBase $schemaNC -Filter { ldapDisplayName -eq $_ } -Properties mayContain, mustContain, systemMayContain, systemMustContain } | Select-Object @{Name = 'Attributes'; Expression = { $_.mayContain + $_.mustContain + $_.systemMaycontain + $_.systemMustContain } } | Select-Object -ExpandProperty Attributes
+
             # Get SystemAuxiliary class attributes
-            if ($UserClass.SystemAuxiliaryClass.count -ge 1) {
-                $SystemAuxiliaryClass = $UserClass.SystemAuxiliaryClass | ForEach-Object {
-                    Get-ADObject -ErrorAction SilentlyContinue -SearchBase (Get-ADRootDSE).SchemaNamingContext -Filter { ldapDisplayName -like $_ } -Properties MayContain, SystemMayContain, systemMustContain } | Select-Object @{Name = 'Attributes'; Expression = { $_.maycontain + $_.systemmaycontain + $_.systemMustContain } } | Select-Object -ExpandProperty Attributes
+            if ($class.SystemAuxiliaryClass.Count -ge 1) {
+                $SystemAuxiliaryClass = $class.SystemAuxiliaryClass | ForEach-Object {
+                    Get-ADObject -ErrorAction SilentlyContinue -SearchBase $schemaNC -Filter { ldapDisplayName -like $_ } -Properties MayContain, SystemMayContain, systemMustContain } | Select-Object @{Name = 'Attributes'; Expression = { $_.maycontain + $_.systemmaycontain + $_.systemMustContain } } | Select-Object -ExpandProperty Attributes
             }
 
-            # Get direct attributes
-            # Add attributes with class name to the output
             # Create categorized lists of attributes
-            [System.Collections.Generic.List[PSObject]]$directAttributes = @($_.mayContain + $_.mustContain + $_.systemMayContain + $_.systemMustContain)
-            [System.Collections.Generic.List[PSObject]]$auxAttributes = @($auxiliaryClass)
-            [System.Collections.Generic.List[PSObject]]$sysAuxAttributes = @($SystemAuxiliaryClass)
-            $allAttributes = $directAttributes + $auxAttributes + $sysAuxAttributes
-            
+            [System.Collections.Generic.List[Object]]$directAttributes = @($class.mayContain + $class.mustContain + $class.systemMayContain + $class.systemMustContain)
+            [System.Collections.Generic.List[Object]]$auxAttributes = @($auxiliaryClass)
+            [System.Collections.Generic.List[Object]]$sysAuxAttributes = @($SystemAuxiliaryClass)
+
             # Process direct attributes
             foreach ($attribute in $directAttributes) {
                 if ($attribute) {
                     $object = [PSCustomObject][ordered]@{
                         Attribute = $attribute
-                        Class     = $_.ldapDisplayName
+                        Class     = $class.ldapDisplayName
                         Type      = 'Direct'
                     }
+
                     $attributesArray.Add($object)
                 }
             }
-            
+
             # Process auxiliary attributes
             foreach ($attribute in $auxAttributes) {
                 if ($attribute) {
                     $object = [PSCustomObject][ordered]@{
                         Attribute = $attribute
-                        Class     = $_.ldapDisplayName
+                        Class     = $class.ldapDisplayName
                         Type      = 'Auxiliary'
                     }
+
                     $attributesArray.Add($object)
                 }
             }
-            
+
             # Process system auxiliary attributes
             foreach ($attribute in $sysAuxAttributes) {
                 if ($attribute) {
                     $object = [PSCustomObject][ordered]@{
                         Attribute = $attribute
-                        Class     = $_.ldapDisplayName
+                        Class     = $class.ldapDisplayName
                         Type      = 'SystemAuxiliary'
                     }
+
                     $attributesArray.Add($object)
                 }
             }
@@ -95,7 +99,7 @@ function Get-ADAttributesFromClassName {
     # If no ClassName provided, get all classes
     else {
         Write-Host -ForegroundColor Cyan 'No ClassName provided, retrieving all classes and their attributes...'
-        $allClasses = Get-ADObject -SearchBase (Get-ADRootDSE).SchemaNamingContext -Filter { objectClass -eq 'classSchema' } -Properties ldapDisplayName | Select-Object -ExpandProperty ldapDisplayName
+        $allClasses = (Get-ADObject -SearchBase $schemaNC -Filter { objectClass -eq 'classSchema' } -Properties ldapDisplayName).ldapDisplayName
         $i = 0
         foreach ($class in $allClasses) {
             Write-Host -ForegroundColor Green "Retrieving attributes for class: $class ($i of $($allClasses.Count))"
