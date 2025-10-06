@@ -12,9 +12,9 @@
 
 [1.0.0] - 2024-xx-xx
 # Initial Version
-- Custom function instead of Get-LocalGroupMember because it's not working if member has unresolved SID
-  Get-LocalGroupMember PowerShell command doesn't work on an Microsoft Entra ID joined device as there are two unresolved SIDs in the member list. 
-  It will throw the following error: Failed to compare two elements in the array.
+- Custom function instead of Get-LocalGroupMember because it's not working if member has unresolved SID.
+  By example, `Get-LocalGroupMember` PowerShell command doesn't work on an Microsoft Entra ID joined device as there are two unresolved SIDs in the member list. 
+  It will throw the following error: `Failed to compare two elements in the array`
   Issue #2996 · PowerShell/PowerShell · GitHub
 #>
 
