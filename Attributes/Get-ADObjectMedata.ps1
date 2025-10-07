@@ -15,6 +15,15 @@
 .PARAMETER DomainController
     An optional parameter to specify a particular domain controller to query. If not provided, the default domain controller will be used.
 
+.PARAMETER OnlyAttributesWithRecentChanges
+    A switch to filter the results to include only attributes that have been modified in the last X days.
+    If this switch is used, the 'Days' parameter will determine the time frame for recent changes.
+    If Days is not specified, it defaults to 10 days.
+
+.PARAMETER Days
+    An optional parameter to specify the number of days for filtering recent changes when the 'OnlyAttributesWithRecentChanges' switch is used.
+    The default value is 10 days.
+
 .EXAMPLE
     Get-ADObjectMetadata 'CN=John Doe,OU=Users,DC=example,DC=com'
 
@@ -30,12 +39,27 @@
 
     Retrieves metadata for the specified user object from the specified domain controller.
 
+.EXAMPLE
+    Get-ADObjectMetadata 'CN=John Doe,OU=Users,DC=example,DC=com' -OnlyAttributesWithRecentChanges
+
+    Retrieves metadata for the specified user object, filtering to show only attributes that have been modified in the last 10 days (default).
+
+.EXAMPLE
+    Get-ADObjectMetadata 'CN=John Doe,OU=Users,DC=example,DC=com' -OnlyAttributesWithRecentChanges -Days 5
+
+    Retrieves metadata for the specified user object, filtering to show only attributes that have been modified in the last 5 days.
+
 .NOTES
 Author: Bastien Perez
 Date: 2025-10-07
-Version: 1.1.0
+Version: 1.2.0
 
 .CHANGELOG
+[1.2.0] - 2025-10-07
+# Added
+- Add parameter `-OnlyAttributesWithRecentChanges` to filter attributes modified in the last X days (default 10 days).
+- Add parameter `-Days` to specify the number of days for recent changes filtering (default is 10 days)
+
 [1.1.0] - 2025-10-07
 # Added
 - Add script parameters `-DomainController` to specify a domain controller.
@@ -54,7 +78,11 @@ function Get-ADObjectMetadata {
         [Parameter(Mandatory = $false, Position = 1)]
         [String[]] $Attributes,
         [Parameter(Mandatory = $false)]
-        [String] $DomainController
+        [String] $DomainController,
+        [Parameter(Mandatory = $false)]
+        [Switch] $OnlyAttributesWithRecentChanges,
+        [Parameter(Mandatory = $false)]
+        [int] $Days = 10
     )
 
     try {
@@ -136,6 +164,10 @@ function Get-ADObjectMetadata {
 
             $objectMetadataArray.Add($object)
         }
+    }
+
+    if ($OnlyAttributesWithRecentChanges.IsPresent) {
+        $objectMetadataArray = $objectMetadataArray | Where-Object { [DateTime]$_.TimeLastOriginatingChange -gt (Get-Date).AddDays(-$Days) }
     }
 
     return $objectMetadataArray
