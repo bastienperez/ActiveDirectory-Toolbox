@@ -24,6 +24,10 @@
     An optional parameter to specify the number of days for filtering recent changes when the 'OnlyAttributesWithRecentChanges' switch is used.
     The default value is 10 days.
 
+.PARAMETER OnlyUpdatedAttributes
+    A switch to filter the results to include only attributes that have been updated (i.e., attributes with a version greater than 1).
+    This helps in identifying attributes that have undergone changes since their initial creation.
+
 .EXAMPLE
     Get-ADObjectMetadata 'CN=John Doe,OU=Users,DC=example,DC=com'
 
@@ -49,6 +53,11 @@
 
     Retrieves metadata for the specified user object, filtering to show only attributes that have been modified in the last 5 days.
 
+.EXAMPLE
+    Get-ADObjectMetadata 'CN=John Doe,OU=Users,DC=example,DC=com' -OnlyUpdatedAttributes
+
+    Retrieves metadata for the specified user object, filtering to show only attributes that have been updated (version > 1).
+
 .NOTES
 Author: Bastien Perez
 Date: 2025-10-07
@@ -59,6 +68,7 @@ Version: 1.2.0
 # Added
 - Add parameter `-OnlyAttributesWithRecentChanges` to filter attributes modified in the last X days (default 10 days).
 - Add parameter `-Days` to specify the number of days for recent changes filtering (default is 10 days)
+- Add parameter `-OnlyUpdatedAttributes` to filter attributes that have been updated (version > 1).
 
 [1.1.0] - 2025-10-07
 # Added
@@ -82,7 +92,9 @@ function Get-ADObjectMetadata {
         [Parameter(Mandatory = $false)]
         [Switch] $OnlyAttributesWithRecentChanges,
         [Parameter(Mandatory = $false)]
-        [int] $Days = 10
+        [int] $Days = 10,
+        [Parameter(Mandatory = $false)]
+        [Switch] $OnlyUpdatedAttributes
     )
 
     try {
@@ -168,6 +180,10 @@ function Get-ADObjectMetadata {
 
     if ($OnlyAttributesWithRecentChanges.IsPresent) {
         $objectMetadataArray = $objectMetadataArray | Where-Object { [DateTime]$_.TimeLastOriginatingChange -gt (Get-Date).AddDays(-$Days) }
+    }
+
+    if ($OnlyUpdatedAttributes) {
+        $objectMetadataArray = $objectMetadataArray | Where-Object { $_.Version -gt 1 }
     }
 
     return $objectMetadataArray
