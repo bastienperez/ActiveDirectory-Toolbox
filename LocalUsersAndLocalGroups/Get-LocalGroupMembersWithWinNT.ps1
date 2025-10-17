@@ -1,6 +1,10 @@
 <#
 .CHANGELOG
 
+[2.1.0] - 2025-10-17
+# Added
+- Add `ExportCSV` parameter to export results to CSV file.
+
 [2.0.0] - 2025-03-05
 # Changed
 - Replace `Computer` parameter by `ComputerName` to be consistent with other scripts.
@@ -19,14 +23,16 @@
 #>
 
 function Get-LocalGroupMembersWithWinNT {
-    Param(
+    param(
         [Parameter(Mandatory = $False, Position = 1)]
         [string]$GroupName,
         [Parameter(Mandatory = $False)]
         [Alias('Computer')]
-        [String[]]$ComputerName
+        [String[]]$ComputerName,
+        [Parameter(Mandatory = $False)]
+        [Switch]$ExportCSV
     )
- 
+
     [System.Collections.Generic.List[PSObject]]$groupMembersArray = @()
 
     if ([String]::IsNullOrWhitespace($ComputerName)) {
@@ -90,12 +96,12 @@ function Get-LocalGroupMembersWithWinNT {
             }
         }
 
-        # Si GroupName n'est pas spécifié, récupérer tous les groupes
+        # If no group name is specified, retrieve all local groups
         if ([string]::IsNullOrWhiteSpace($GroupName)) {
             $groups = $ADSIComputer.psbase.children | Where-Object { $_.psbase.schemaClassName -eq 'group' }
         }
         else {
-            # Sinon, récupérer uniquement le groupe spécifié
+            # Otherwise, retrieve only the specified group
             try {
                 $group = $ADSIComputer.psbase.children.find("$GroupName", 'Group')
                 $groups = @($group)
@@ -139,7 +145,7 @@ function Get-LocalGroupMembersWithWinNT {
                 elseif ($path -like 'WinNT://S-1-12-1-*') {
                     $principalSource = 'EntraID (unable to resolve SID)'
                 }
-                # known SID for local account has the pattner S-1-5-x
+                # known SID for local account has the pattern S-1-5-x
                 elseif ($memberSID.Value -match 'S-1-5-\d+') {
                     $principalSource = 'Local'
                 }
@@ -235,5 +241,23 @@ function Get-LocalGroupMembersWithWinNT {
         }
     }
 
-    return $groupMembersArray
+    if ($ExportCSV) {
+        $now = (Get-Date).ToString('yyyyMMdd')
+    
+        # export to the desktop by default
+        $exportFolder = [System.Environment]::GetFolderPath('Desktop')
+
+        $exportFile = Join-Path -Path $exportFolder -ChildPath "$now-LocalGroupsMembers.csv" -ErrorAction Stop
+    
+        try {
+            $groupMembersArray | Export-Csv -Path $exportFile -NoTypeInformation -Encoding UTF8 -Delimiter ';'
+            Write-Host "Results exported to $exportFile" -ForegroundColor Green
+        }
+        catch {
+            Write-Warning "Could not export results to CSV file. $($_.Exception.Message)"
+        }
+    }
+    else {
+        return $groupMembersArray
+    }
 }
