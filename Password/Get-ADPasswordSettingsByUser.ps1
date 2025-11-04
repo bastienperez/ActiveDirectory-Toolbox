@@ -1,7 +1,7 @@
 ﻿function Get-ADPasswordSettingsByUser {
     [CmdletBinding()]
     param (
-        [Parameter(Mandatory = $false)]
+        [Parameter(Mandatory = $false, Position = 0)]
         [string[]]$SamAccountName,
         [Parameter(Mandatory = $false)]
         [string]$DomainController
@@ -127,25 +127,26 @@
         }
     
         $object = [PSCustomObject][ordered]@{
-            Identity                                                   = $user.SamAccountName
-            DisplayName                                                = $user.DisplayName
-            Enabled                                                    = $user.Enabled
-            DistinguishedName                                          = $user.DistinguishedName
-            PasswordPolicy                                             = $policy
-            PasswordPolicyMaxPasswordAge                               = $passwordPolicyMaxPasswordAge
-            PasswordMinimumLength                                      = $passwordMinimumLength
-            PasswordHistoryCount                                       = $passwordHistoryCount
-            PasswordComplexityEnabled                                  = $passwordComplexityEnabled
-            'PasswordLastSet (UTC Time)'                               = $pwdLastSet
-            'PasswordExpirationDate (UTC Time)'                        = $expirationDate
-            'Days left before password change (according to UTC Time)' = $daysLeft
-            LockoutDuration                                            = $lockoutDuration
-            LockoutObservationWindow                                   = $lockoutDuration
-            LockoutThreshold                                           = $lockoutThreshold
-            LastLogonDate                                              = if ($user.LastLogonDate) { $user.LastLogonDate }else { 'Never logged in' }
-            BadPwdCount                                                = $user.BadPwdCount
-            BadPasswordTime                                            = [datetime]::FromFileTimeUTC($user.BadPasswordTime) # is integer, convert to datetime
-            FromDomainController                                       = $DomainController
+            Identity                        = $user.SamAccountName
+            DisplayName                     = $user.DisplayName
+            Enabled                         = $user.Enabled
+            DistinguishedName               = $user.DistinguishedName
+            PasswordLastSetUTCTime          = $pwdLastSet
+            PasswordPolicy                  = $policy
+            PasswordPolicyMaxPasswordAge    = $passwordPolicyMaxPasswordAge
+            PasswordMinimumLength           = $passwordMinimumLength
+            PasswordHistoryCount            = $passwordHistoryCount
+            PasswordComplexityEnabled       = $passwordComplexityEnabled
+            PasswordExpirationDateUTC       = $expirationDate
+            DaysLeftBeforePasswordChangeUTC = $daysLeft
+            PasswordExpired                 = if ($daysLeft -eq 'Already expired') { $true } else { $false }
+            LockoutDuration                 = $lockoutDuration
+            LockoutObservationWindow        = $lockoutDuration
+            LockoutThreshold                = $lockoutThreshold
+            LastLogonDate                   = if ($user.LastLogonDate) { $user.LastLogonDate }else { 'Never logged in' }
+            BadPwdCount                     = $user.BadPwdCount
+            BadPasswordTime                 = [datetime]::FromFileTimeUTC($user.BadPasswordTime) # is integer, convert to datetime
+            FromDomainController            = $DomainController
         }
     
         $passwordSettingsByUser.add($object)
