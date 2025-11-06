@@ -1,5 +1,6 @@
-﻿function Get-ADPasswordSettingsByUser {
+﻿function Get-ADUserPasswordInfo {
     [CmdletBinding()]
+    [Alias('Get-ADPasswordSettingsByUser')]
     param (
         [Parameter(Mandatory = $false, Position = 0)]
         [string[]]$SamAccountName,
@@ -21,7 +22,7 @@
 
     $defautPasswordPolicyObject = Get-ADDefaultDomainPasswordPolicy -Server $DomainController
     $defautPasswordPolicyDays = $defautPasswordPolicyObject.MaxPasswordAge.Days
-    $attributes = 'DisplayName', 'msDS-UserPasswordExpiryTimeComputed', 'PasswordNeverExpires', 'pwdLastSet', 'Enabled', 'badPwdCount', 'badPasswordTime', 'LastLogonDate', 'PasswordNotRequired'
+    $attributes = 'DisplayName', 'msDS-UserPasswordExpiryTimeComputed', 'PasswordNeverExpires', 'pwdLastSet', 'Enabled', 'badPwdCount', 'badPasswordTime', 'LastLogonDate', 'PasswordNotRequired', 'mail', 'UserPrincipalName'
 
     if ($SamAccountName) {
         [System.Collections.Generic.List[PSObject]]$users = @()
@@ -130,7 +131,8 @@
             Identity                        = $user.SamAccountName
             DisplayName                     = $user.DisplayName
             Enabled                         = $user.Enabled
-            DistinguishedName               = $user.DistinguishedName
+            UserPrincipalName               = $user.UserPrincipalName
+            Mail                            = $user.mail
             PasswordLastSetUTCTime          = $pwdLastSet
             PasswordPolicy                  = $policy
             PasswordPolicyMaxPasswordAge    = $passwordPolicyMaxPasswordAge
@@ -147,6 +149,7 @@
             BadPwdCount                     = $user.BadPwdCount
             BadPasswordTime                 = [datetime]::FromFileTimeUTC($user.BadPasswordTime) # is integer, convert to datetime
             FromDomainController            = $DomainController
+            DistinguishedName               = $user.DistinguishedName
         }
     
         $passwordSettingsByUser.add($object)
