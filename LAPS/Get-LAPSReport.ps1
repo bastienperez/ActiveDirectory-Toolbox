@@ -182,8 +182,14 @@ function Get-LAPSReport {
                 [System.Collections.Generic.List[String]]$WhoCanReadLegacyLAPSPwd = @()
                 foreach ($access in $legacyLAPSACLsAccess) {
                     # if SID, we try to resolve it
-                    if ($access -like 'S-1-5-32*') {
-                        $access = (Get-ADGroup -Identity $access -Server $DC).Name
+                    if ($access -like 'S-1-*') {
+                        try {
+                            $resolvedObject = Get-ADObject -Identity $access -Server $DC -Properties Name, sAMAccountName -ErrorAction Stop
+                            $access = if ($resolvedObject.sAMAccountName) { $resolvedObject.sAMAccountName } else { $resolvedObject.Name }
+                        }
+                        catch {
+                            # Keep original SID if resolution fails
+                        }
                     }
     
                     $WhoCanReadLegacyLAPSPwd.Add($access)
@@ -199,8 +205,14 @@ function Get-LAPSReport {
                 [System.Collections.Generic.List[String]]$whoCanReadWindowsLapsPwd = @()
                 foreach ($access in $windowsLAPSACLsAccess) {
                     # if SID, we try to resolve it
-                    if ($access -like 'S-1-5-32*') {
-                        $access = (Get-ADGroup -Identity $access -Server $DC).Name
+                    if ($access -like 'S-1-*') {
+                        try {
+                            $resolvedObject = Get-ADObject -Identity $access -Server $DC -Properties Name, sAMAccountName -ErrorAction Stop
+                            $access = if ($resolvedObject.sAMAccountName) { $resolvedObject.sAMAccountName } else { $resolvedObject.Name }
+                        }
+                        catch {
+                            # Keep original SID if resolution fails
+                        }
                     }
     
                     $whoCanReadWindowsLapsPwd.Add($access)

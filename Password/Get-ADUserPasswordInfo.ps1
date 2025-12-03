@@ -91,10 +91,16 @@
         }
 
         if ($user.pwdLastSet -eq 0) {
-            $pwdLastSet = 'Never'
+            $pwdLastSet = $null
         }
         else {
-            $pwdLastSet = $([datetime]::FromFileTime($user.pwdLastSet).ToUniversalTime())
+            $convertedDate = [datetime]::FromFileTime($user.pwdLastSet).ToUniversalTime()
+            if ($convertedDate -eq [datetime]::new(1601, 1, 1, 0, 0, 0, [DateTimeKind]::Utc)) {
+                $pwdLastSet = $null
+            }
+            else {
+                $pwdLastSet = $convertedDate
+            }
         }
     
         if ($user.'msDS-UserPasswordExpiryTimeComputed' -eq 9223372036854775807 -and $user.PasswordNeverExpires -eq $false) {
@@ -117,13 +123,20 @@
         }
         else {
             $expirationDate = $([datetime]::FromFileTime($user.'msDS-UserPasswordExpiryTimeComputed').ToUniversalTime())
-            $daysLeft = New-TimeSpan (Get-Date).ToUniversalTime() $expirationDate
             
-            if ($daysLeft -le 0 -and $null -ne $daysLeft) {
-                $daysLeft = 'Already expired'
+            if ($expirationDate -eq [datetime]::new(1601, 1, 1, 0, 0, 0, [DateTimeKind]::Utc)) {
+                $expirationDate = $null
+                $daysLeft = '-'
             }
             else {
-                $daysLeft = $daysLeft.Days
+                $daysLeft = New-TimeSpan (Get-Date).ToUniversalTime() $expirationDate
+                
+                if ($daysLeft -le 0 -and $null -ne $daysLeft) {
+                    $daysLeft = 'Already expired'
+                }
+                else {
+                    $daysLeft = $daysLeft.Days
+                }
             }
         }
     
@@ -147,7 +160,7 @@
             LockoutThreshold                = $lockoutThreshold
             LastLogonDate                   = if ($user.LastLogonDate) { $user.LastLogonDate }else { 'Never logged in' }
             BadPwdCount                     = $user.BadPwdCount
-            BadPasswordTime                 = [datetime]::FromFileTimeUTC($user.BadPasswordTime) # is integer, convert to datetime
+            BadPasswordTime                 = if ($user.BadPasswordTime -eq 0 -or [datetime]::FromFileTimeUTC($user.BadPasswordTime) -eq [datetime]::new(1601, 1, 1, 0, 0, 0, [DateTimeKind]::Utc)) { $null } else { [datetime]::FromFileTimeUTC($user.BadPasswordTime) }
             FromDomainController            = $DomainController
             DistinguishedName               = $user.DistinguishedName
         }
