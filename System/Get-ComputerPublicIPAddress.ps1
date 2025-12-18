@@ -13,7 +13,7 @@ function Get-ComputerPublicIPAddress {
 
     #>
     
-    Param (
+    param (
         [String]$ComputerName
     )
 
@@ -22,7 +22,7 @@ function Get-ComputerPublicIPAddress {
 
     if ($ComputerName) {
         $ipAddress = Invoke-Command -ComputerName $ComputerName -ScriptBlock {
-            Param($uri)
+            param($uri)
             [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
             Invoke-RestMethod -Method Get -Uri $uri
         } -ArgumentList $getIP
@@ -31,7 +31,7 @@ function Get-ComputerPublicIPAddress {
         $computerName = $env:COMPUTERNAME
         $ipAddress = Invoke-RestMethod -Method Get -Uri $getIP
     }
-   
+
     [System.Collections.Generic.List[String]]$blackListedArray = @()
 
     foreach ($blacklist in $ipAddress.blacklisted.results) {
