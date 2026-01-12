@@ -1,11 +1,47 @@
-﻿function Get-ADUserPasswordInfo {
+﻿<#
+    .SYNOPSIS
+    Retrieves password information for Active Directory users, including password expiration dates and policies.
+
+    .DESCRIPTION
+    The function fetches password-related information for specified Active Directory users or all users in the domain if no specific users are provided.
+    It determines the applicable password policy (either from Group Policy or Fine Grained Password Policies) and calculates password expiration dates.
+
+    .PARAMETER SamAccountName
+    An array of SAM account names of the users for whom to retrieve password information. If not provided, information for all users in the domain will be retrieved.
+
+    .PARAMETER DomainController
+    The domain controller to query for user information. If not specified, the PDC emulator will be used.
+
+    .PARAMETER SimulatedMaxPasswordAgeDays
+    An optional parameter to simulate password expiration based on a specified maximum password age in days.
+    If provided, the function will calculate a simulated password expiration date and indicate whether the password would be expired based on this simulated age.
+
+    .EXAMPLE
+    Get-ADUserPasswordInfo
+    Retrieves password information for all users in the domain.
+
+    .EXAMPLE
+    Get-ADUserPasswordInfo -SamAccountName 'jdoe', 'asmith'
+    Retrieves password information for the users 'jdoe' and 'asmith'.
+
+    .EXAMPLE
+    Get-ADUserPasswordInfo -SimulatedMaxPasswordAgeDays 180
+    Retrieves password information for all users and simulates what would happen with a 180-day password expiration policy, showing both current and simulated expiration dates.
+
+#>
+function Get-ADUserPasswordInfo {
     [CmdletBinding()]
     [Alias('Get-ADPasswordSettingsByUser')]
     param (
         [Parameter(Mandatory = $false, Position = 0)]
         [string[]]$SamAccountName,
+
         [Parameter(Mandatory = $false)]
-        [string]$DomainController
+        [string]$DomainController,
+
+        [Parameter(Mandatory = $false)]
+        [ValidateRange(1, [int]::MaxValue)]
+        [int]$SimulatedMaxPasswordAgeDays
     )
     Import-Module ActiveDirectory
     
@@ -140,6 +176,17 @@
             }
         }
     
+        if ($SimulatedMaxPasswordAgeDays -and $user.pwdLastSet -and $pwdLastSet -ne [datetime]::new(1601, 1, 1, 0, 0, 0, [DateTimeKind]::Utc)) {
+            # Calculate simulated password expiration if SimulatedMaxPasswordAgeDays is provided
+            $simulatedPasswordExpirationDateUTC = $null
+            $simulatedPasswordExpired = $false
+            $simulatedPasswordExpirationDateUTC = $pwdLastSet.AddDays($SimulatedMaxPasswordAgeDays)
+            if ($pwdLastSet -lt (Get-Date).AddDays(-$SimulatedMaxPasswordAgeDays)) {
+                $simulatedPasswordExpired = $true
+            }
+        }
+
+        
         $object = [PSCustomObject][ordered]@{
             Identity                        = $user.SamAccountName
             DisplayName                     = $user.DisplayName
@@ -163,6 +210,11 @@
             BadPasswordTime                 = if ($user.BadPasswordTime -eq 0 -or [datetime]::FromFileTimeUTC($user.BadPasswordTime) -eq [datetime]::new(1601, 1, 1, 0, 0, 0, [DateTimeKind]::Utc)) { $null } else { [datetime]::FromFileTimeUTC($user.BadPasswordTime) }
             FromDomainController            = $DomainController
             DistinguishedName               = $user.DistinguishedName
+        }
+
+        if ( $SimulatedMaxPasswordAgeDays) {
+            $object | Add-Member -MemberType NoteProperty -Name 'SimulatedPasswordExpirationDateUTC' -Value $simulatedPasswordExpirationDateUTC
+            $object | Add-Member -MemberType NoteProperty -Name 'SimulatedPasswordExpired' -Value $simulatedPasswordExpired
         }
     
         $passwordSettingsByUser.add($object)
