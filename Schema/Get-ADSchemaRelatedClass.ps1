@@ -1,6 +1,6 @@
 # modified version of https://www.neroblanco.co.uk/2017/09/get-possible-ad-attributes-user-group/
 
-Function Get-RelatedClass {
+Function Get-ADSchemaRelatedClass {
   Param(
     [CmdletBinding()]
     [Parameter(Mandatory = $true)]
@@ -22,5 +22,4 @@ Function Get-RelatedClass {
   }
 
   return $Classes
-   
 }
