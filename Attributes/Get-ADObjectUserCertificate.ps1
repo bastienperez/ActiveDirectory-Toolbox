@@ -41,9 +41,14 @@
     Retrieves certificates from all computer objects across all domain controllers.
 
     .EXAMPLE
-    Get-ADObjectUserCertificate | Where-Object { $_.NotAfter -gt (Get-Date).AddDays(7) }
+    Get-ADObjectUserCertificate | Where-Object { $_.NotBefore -gt (Get-Date).AddDays(-7) }
     
-    Retrieves all certificates and filters to show only those that expire more than 7 days from now.
+    Retrieves all certificates and filters to show only those issued within the last 7 days.
+
+    .EXAMPLE
+    Get-ADObjectUserCertificate | Where-Object { $_.NotBefore -gt (Get-Date).AddDays(30) }
+
+    Retrieves all certificates and filters to show only those that will expire within the next 30 days.
 
     .EXAMPLE
     Get-ADObjectUserCertificate | Where-Object { $_.NotBefore -gt (Get-Date).AddDays(-7) }
