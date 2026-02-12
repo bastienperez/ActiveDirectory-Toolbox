@@ -85,7 +85,7 @@ function Get-ADObjectUserCertificate {
         $DomainController = (Get-ADDomainController -Filter *).Name
     }
     elseif (-not ($DomainController)) {
-        $DomainController = $env:USERDNSDOMAIN
+        $DomainController = (Get-ADDomainController -Discover).HostName
     }
 
     foreach ($DC in $DomainController) {
@@ -129,6 +129,8 @@ function Get-ADObjectUserCertificate {
                     Name               = $adObject.Name
                     DisplayName        = $adObject.displayname
                     DistinguishedName  = $adObject.DistinguishedName
+                    ObjectCreated      = $adObject.whenCreated
+                    ObjectModified     = $adObject.whenChanged
                     IssuedTo           = $certificate.Subject
                     IssuedBy           = $certificate.Issuer
                     IntendedPurpose    = $certificate.EnhancedKeyUsageList
