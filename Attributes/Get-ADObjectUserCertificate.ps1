@@ -13,7 +13,7 @@
     .PARAMETER DomainController
     Array of domain controller names to query. If not specified, uses the current domain.
 
-    .PARAMETER QueryAllDCs 
+    .PARAMETER QueryAllDCs
     Switch to query all available domain controllers in the domain.
 
     .PARAMETER ObjectType
@@ -36,7 +36,7 @@
     Retrieves certificates from a specific user named john.doe.
 
     .EXAMPLE
-    Get-ADObjectUserCertificate -QueryAllDCs  -ObjectType "Computers"
+    Get-ADObjectUserCertificate -QueryAllDCs -ObjectType "Computers"
     
     Retrieves certificates from all computer objects across all domain controllers.
 
@@ -67,7 +67,7 @@ function Get-ADObjectUserCertificate {
         [Parameter(Mandatory = $false)]
         [String[]]$DomainController,
         [Parameter(Mandatory = $false)]
-        [switch]$QueryAllDCs ,
+        [switch]$QueryAllDCs,
         [Parameter(Mandatory = $false)]
         [ValidateSet('All', 'Users', 'Computers')]
         [String]$ObjectType = 'All'
@@ -75,7 +75,7 @@ function Get-ADObjectUserCertificate {
     
     [System.Collections.Generic.List[PSObject]]$certificatesArray = @()
 
-    if ($QueryAllDCs .IsPresent) {
+    if ($QueryAllDCs.IsPresent) {
         # get all domain controllers
         $DomainController = (Get-ADDomainController -Filter *).Name
     }
