@@ -133,7 +133,7 @@ function Get-ADObjectUserCertificate {
                     ObjectModified     = $adObject.whenChanged
                     IssuedTo           = $certificate.Subject
                     IssuedBy           = $certificate.Issuer
-                    IntendedPurpose    = $certificate.EnhancedKeyUsageList
+                    IntendedPurpose    = $certificate.EnhancedKeyUsageList -join '|'
                     NotBefore          = $certificate.NotBefore
                     NotAfter           = $certificate.NotAfter
                     SerialNumber       = $certificate.SerialNumber
