@@ -91,9 +91,9 @@ function Get-ADObjectUserCertificate {
     foreach ($DC in $DomainController) {
 
         if ($Name) {
-            # Search by name using string filter with embedded values
-            $computerName = "$Name$"
-            $adObjectsWithCertificate = Get-ADObject -Filter "(Name -eq '$Name' -or SamAccountName -eq '$Name' -or SamAccountName -eq '$computerName') -and (UserCertificate -like '*' -or userCert -like '*' -or UserSMIMECertificate -like '*')" -Properties * -Server $DC
+            # if we search for a specific name, we also search for the computername with a $ at the end
+            $computerSam = "$Name$"
+            $adObjectsWithCertificate = Get-ADObject -Filter "(Name -eq '$Name' -or SamAccountName -eq '$Name' -or SamAccountName -eq '$computerSam') -and (UserCertificate -like '*' -or userCert -like '*' -or UserSMIMECertificate -like '*')" -Properties * -Server $DC
         }
         elseif ($ObjectType -eq 'Users') {
             $adObjectsWithCertificate = Get-ADObject -Filter { objectClass -eq 'user' -and (UserCertificate -like '*' -or userCert -like '*' -or UserSMIMECertificate -like '*') } -Properties * -Server $DC
@@ -143,6 +143,7 @@ function Get-ADObjectUserCertificate {
                     IssuerName         = $certificate.IssuerName.Name
                     SubjectName        = $certificate.SubjectName.Name
                     SignatureAlgorithm = $certificate.SignatureAlgorithm.FriendlyName
+                    Base64Value        = [Convert]::ToBase64String($certificate.RawData)
                     FromDC             = $DC
                 }
 
