@@ -51,7 +51,10 @@ function Get-SysvolReplicationProtocol {
         }
         
         # Parse the output to find the migration state
-        if ($migrationOutput -match "Global state \('(\w+)'\)") {
+        # dfsrmig returns an array of lines; join it into a single string so that
+        # -match operates on a scalar and populates the $Matches automatic variable
+        $migrationText = $migrationOutput -join "`n"
+        if ($migrationText -match "Global state \('(\w+)'\)") {
             $migrationState = $Matches[1]
         }
     }
