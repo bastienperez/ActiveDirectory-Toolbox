@@ -37,11 +37,11 @@ function Get-SysvolReplicationProtocol {
     # Get DFSR migration state
     Write-Host 'Checking DFSR migration state...' -ForegroundColor Cyan
     $migrationState = 'Unknown'
+    $localFQDN = "$env:COMPUTERNAME.$env:USERDNSDOMAIN".ToLower()
     try {
         $firstDC = $computers[0]
-        $localComputerName = $env:COMPUTERNAME
         
-        if ($firstDC -eq $localComputerName) {
+        if ($firstDC.ToLower() -eq $localFQDN) {
             # Execute locally if the DC is the current server
             $migrationOutput = dfsrmig.exe /getMigrationState
         }
@@ -63,8 +63,7 @@ function Get-SysvolReplicationProtocol {
     foreach ($computer in $computers) {
         Write-Host "Processing $computer" -ForegroundColor Cyan
         if ($dfsObjects -ne 0) {
-            $localComputerName = $env:COMPUTERNAME
-            if ($computer -eq $localComputerName) {
+            if ($computer.ToLower() -eq $localFQDN) {
                 $DFS = Get-WmiObject -Namespace 'root\MicrosoftDFS' -Class DfsrReplicatedFolderInfo | Where-Object { $_.ReplicatedFolderName -eq 'SYSVOL Share' } | Select-Object ReplicatedFolderName, ReplicationGroupName, State
             }
             else {
