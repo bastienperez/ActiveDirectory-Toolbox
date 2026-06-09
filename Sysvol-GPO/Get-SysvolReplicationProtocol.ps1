@@ -11,7 +11,7 @@ function Get-SysvolReplicationProtocol {
     
     [System.Collections.Generic.List[PSObject]]$sysvolReplicationProtocolArray = @()
     
-    $computers = ([System.DirectoryServices.ActiveDirectory.Domain]::GetCurrentDomain().DomainControllers).Name
+    $computers = @(([System.DirectoryServices.ActiveDirectory.Domain]::GetCurrentDomain().DomainControllers).Name)
     
     $domainRoot = (Get-ADDomain).DistinguishedName
     
@@ -37,7 +37,7 @@ function Get-SysvolReplicationProtocol {
     # Get DFSR migration state
     Write-Host 'Checking DFSR migration state...' -ForegroundColor Cyan
     $migrationState = 'Unknown'
-    $localFQDN = ("$env:COMPUTERNAME.$env:USERDNSDOMAIN").ToLower()
+    $localFQDN = "$env:COMPUTERNAME.$env:USERDNSDOMAIN".ToLower()
     try {
         $firstDC = $computers[0]
         
