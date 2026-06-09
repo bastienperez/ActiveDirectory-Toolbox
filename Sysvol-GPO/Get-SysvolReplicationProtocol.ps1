@@ -51,7 +51,7 @@ function Get-SysvolReplicationProtocol {
         }
         
         # Parse the output to find the migration state
-        if ($migrationOutput -match 'Migration State = (\w+)') {
+        if ($migrationOutput -match "Global state \('(\w+)'\)") {
             $migrationState = $Matches[1]
         }
     }
