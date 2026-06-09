@@ -35,11 +35,21 @@ function Get-SysvolReplicationProtocol {
     Write-Host -ForegroundColor Cyan "DFS objects: $dfsObjects"
     
     # Get DFSR migration state
-    Write-Host "Checking DFSR migration state..." -ForegroundColor Cyan
+    Write-Host 'Checking DFSR migration state...' -ForegroundColor Cyan
     $migrationState = 'Unknown'
     try {
         $firstDC = $computers[0]
-        $migrationOutput = Invoke-Command -ComputerName $firstDC -ScriptBlock { dfsrmig.exe /getMigrationState } -ErrorAction Stop
+        $localComputerName = $env:COMPUTERNAME
+        
+        if ($firstDC -eq $localComputerName) {
+            # Execute locally if the DC is the current server
+            $migrationOutput = dfsrmig.exe /getMigrationState
+        }
+        else {
+            # Execute remotely via Invoke-Command
+            $migrationOutput = Invoke-Command -ComputerName $firstDC -ScriptBlock { dfsrmig.exe /getMigrationState } -ErrorAction Stop
+        }
+        
         # Parse the output to find the migration state
         if ($migrationOutput -match 'Migration State = (\w+)') {
             $migrationState = $Matches[1]
@@ -53,21 +63,27 @@ function Get-SysvolReplicationProtocol {
     foreach ($computer in $computers) {
         Write-Host "Processing $computer" -ForegroundColor Cyan
         if ($dfsObjects -ne 0) {
-            $DFS = Get-WmiObject -Namespace "root\MicrosoftDFS" -Class DfsrReplicatedFolderInfo -ComputerName $computer | Where-Object { $_.ReplicatedFolderName -eq 'SYSVOL Share' } | Select-Object ReplicatedFolderName, ReplicationGroupName, State
+            $localComputerName = $env:COMPUTERNAME
+            if ($computer -eq $localComputerName) {
+                $DFS = Get-WmiObject -Namespace 'root\MicrosoftDFS' -Class DfsrReplicatedFolderInfo | Where-Object { $_.ReplicatedFolderName -eq 'SYSVOL Share' } | Select-Object ReplicatedFolderName, ReplicationGroupName, State
+            }
+            else {
+                $DFS = Get-WmiObject -Namespace 'root\MicrosoftDFS' -Class DfsrReplicatedFolderInfo -ComputerName $computer | Where-Object { $_.ReplicatedFolderName -eq 'SYSVOL Share' } | Select-Object ReplicatedFolderName, ReplicationGroupName, State
+            }
         }
         
         $dfsrService = Get-Service dfsr -ComputerName $computer
         $ntfrsService = Get-Service ntfrs -ComputerName $computer
 
         $object = [PSCustomObject][ordered]@{
-                ComputerName         = $computer.ToUpper()
-                MigrationState       = $migrationState
-                DFSState             = if ($DFS) { $DFSStateHash[$DFS.State.ToString()] } else { 'NotEnabled' }
-                DFSRServiceState     = $dfsrService.Status
-                DFSRServiceStartType = $dfsrService.StartType
-                NTFRSState           = $ntfrsService.Status
-                NTFRSStartType       = $ntfrsService.StartType  
-            }
+            ComputerName         = $computer.ToUpper()
+            MigrationState       = $migrationState
+            DFSState             = if ($DFS) { $DFSStateHash[$DFS.State.ToString()] } else { 'NotEnabled' }
+            DFSRServiceState     = $dfsrService.Status
+            DFSRServiceStartType = $dfsrService.StartType
+            NTFRSState           = $ntfrsService.Status
+            NTFRSStartType       = $ntfrsService.StartType  
+        }
     
         $sysvolReplicationProtocolArray.Add($object)
     }
