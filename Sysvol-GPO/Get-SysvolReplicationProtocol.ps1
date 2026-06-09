@@ -34,6 +34,22 @@ function Get-SysvolReplicationProtocol {
     Write-Host -ForegroundColor Cyan "FRS objects: $frsObjects"
     Write-Host -ForegroundColor Cyan "DFS objects: $dfsObjects"
     
+    # Get DFSR migration state
+    Write-Host "Checking DFSR migration state..." -ForegroundColor Cyan
+    $migrationState = 'Unknown'
+    try {
+        $firstDC = $computers[0]
+        $migrationOutput = Invoke-Command -ComputerName $firstDC -ScriptBlock { dfsrmig.exe /getMigrationState } -ErrorAction Stop
+        # Parse the output to find the migration state
+        if ($migrationOutput -match 'Migration State = (\w+)') {
+            $migrationState = $Matches[1]
+        }
+    }
+    catch {
+        Write-Host "Warning: Could not retrieve DFSR migration state - $_" -ForegroundColor Yellow
+    }
+    Write-Host -ForegroundColor Cyan "Migration State: $migrationState"
+    
     foreach ($computer in $computers) {
         Write-Host "Processing $computer" -ForegroundColor Cyan
         if ($dfsObjects -ne 0) {
@@ -45,6 +61,7 @@ function Get-SysvolReplicationProtocol {
 
         $object = [PSCustomObject][ordered]@{
                 ComputerName         = $computer.ToUpper()
+                MigrationState       = $migrationState
                 DFSState             = if ($DFS) { $DFSStateHash[$DFS.State.ToString()] } else { 'NotEnabled' }
                 DFSRServiceState     = $dfsrService.Status
                 DFSRServiceStartType = $dfsrService.StartType
