@@ -24,18 +24,20 @@
     Domain controller to query. Defaults to the one the machine is bound to.
 
 .EXAMPLE
-    .\Get-ADDCSyncRight.ps1
+    . .\Get-ADDCSyncRight.ps1
+    Get-ADDCSyncRight
 
-    Lists the principals holding replication rights on the current domain.
+    Dot-source the file to define the function, then list the principals holding replication rights on the current
+    domain.
 
 .EXAMPLE
-    .\Get-ADDCSyncRight.ps1 | Where-Object { $_.AccessControlType -eq 'Allow' } | Format-Table
+    Get-ADDCSyncRight | Where-Object { $_.AccessControlType -eq 'Allow' } | Format-Table
 
     Same, keeping only the entries that actually grant the right. A Deny entry appears in the output too, and
     reading it as a grant is a mistake worth avoiding.
 
 .EXAMPLE
-    .\Get-ADDCSyncRight.ps1 | Group-Object IdentityReference | Where-Object { $_.Count -ge 2 }
+    Get-ADDCSyncRight | Group-Object IdentityReference | Where-Object { $_.Count -ge 2 }
 
     Shows the principals holding at least two of the rights, which is the combination a DCSync needs.
 
