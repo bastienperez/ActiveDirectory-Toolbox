@@ -10,6 +10,7 @@ this repository.
 | `Get-ADAttributeInfo.ps1` | `Get-ADAttributeInfo` |
 | `Get-ADAttributeInfov2.ps1` | `Get-ADAttributeInfo`, the two were merged and the `v2` suffix dropped |
 | `Get-ADSchemaInfo.ps1` | `Get-ADSchemaInfo` |
+| `Get-ADSchemaRelatedClass.ps1` | `Get-ADSchemaRelatedClass`, fixed on the way: it recursed into `Get-RelatedClass`, a name that existed nowhere, so it failed on any class having a parent |
 
 ```powershell
 Install-Module -Name PSADDS -Scope CurrentUser
